@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FIFA World Cup Replays</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0f1a; --surface: #111827; --surface2: #1c2537;
+  --border: #1e2d45; --accent: #3b82f6; --accent2: #f59e0b;
+  --text: #e5eaf5; --muted: #6b7fa3;
+}
+body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+/* ── MINIMAL HEADER ── */
+header {
+  padding: 1.1rem 2rem;
+  display: flex; align-items: center; gap: 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.header-logo { font-size: 1.1rem; opacity: .7; }
+.header-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.35rem; letter-spacing: .08em; color: #fff;
+}
+.header-title span { color: var(--accent2); }
+.header-count {
+  margin-left: auto; font-size: .75rem; color: var(--muted); font-weight: 400;
+}
+
+/* ── FILTERS ── */
+.filters-wrap {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  position: sticky; top: 0; z-index: 100;
+}
+
+.filter-section {
+  max-width: 1100px; margin: 0 auto;
+  padding: .75rem 0;
+  border-bottom: 1px solid rgba(30,45,69,.5);
+  display: flex; align-items: center; gap: .75rem;
+}
+.filter-section:last-child { border-bottom: none; }
+
+.filter-label {
+  font-size: .65rem; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600; white-space: nowrap; min-width: 3.5rem;
+}
+
+.pill-track {
+  display: flex; gap: .45rem; flex-wrap: nowrap;
+  overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
+  padding-bottom: 2px;
+}
+.pill-track::-webkit-scrollbar { display: none; }
+
+.pill {
+  flex-shrink: 0;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); font-family: 'DM Sans', sans-serif;
+  font-size: .8rem; font-weight: 500; letter-spacing: .02em;
+  padding: .32rem .8rem; border-radius: 100px;
+  cursor: pointer; transition: all .18s; white-space: nowrap;
+  user-select: none;
+}
+.pill:hover { border-color: rgba(59,130,246,.4); color: var(--text); }
+.pill.active {
+  background: #fff; border-color: #fff; color: #000;
+  font-weight: 600;
+}
+.pill.active.team { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.btn-reset-pill {
+  flex-shrink: 0; background: transparent; border: 1px solid var(--border);
+  color: var(--muted); font-family: 'DM Sans', sans-serif;
+  font-size: .75rem; padding: .3rem .7rem; border-radius: 100px;
+  cursor: pointer; transition: all .18s; margin-left: auto;
+}
+.btn-reset-pill:hover { border-color: var(--accent); color: var(--accent); }
+
+.team-row-actions { display: flex; align-items: center; gap: .5rem; margin-left: auto; flex-shrink: 0; }
+
+.btn-team-dropdown {
+  flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); font-family: 'DM Sans', sans-serif;
+  font-size: .8rem; font-weight: 500; padding: .32rem .75rem .32rem .9rem;
+  border-radius: 100px; cursor: pointer; transition: all .18s;
+  display: flex; align-items: center; gap: .4rem; white-space: nowrap;
+}
+.btn-team-dropdown svg { width: 10px; height: 10px; transition: transform .2s; flex-shrink: 0; }
+.btn-team-dropdown.open { border-color: var(--accent); color: var(--accent); }
+.btn-team-dropdown.open svg { transform: rotate(180deg); }
+.btn-team-dropdown:hover { border-color: rgba(59,130,246,.5); color: var(--text); }
+
+.team-dropdown-panel {
+  position: absolute; top: calc(100% + 6px); right: 0;
+  background: #141f33; border: 1px solid var(--border);
+  border-radius: 10px; padding: .5rem; min-width: 200px; max-height: 320px;
+  overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  box-shadow: 0 12px 40px rgba(0,0,0,.6); z-index: 200;
+  display: none; flex-direction: column; gap: 1px;
+}
+.team-dropdown-panel.open { display: flex; }
+.team-dropdown-panel::-webkit-scrollbar { width: 4px; }
+.team-dropdown-panel::-webkit-scrollbar-track { background: transparent; }
+.team-dropdown-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.dropdown-item {
+  background: transparent; border: none; color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: .85rem;
+  padding: .48rem .75rem; border-radius: 6px; cursor: pointer;
+  text-align: left; transition: background .15s; white-space: nowrap;
+}
+.dropdown-item:hover { background: var(--surface2); }
+.dropdown-item.active { background: rgba(59,130,246,.15); color: var(--accent); font-weight: 600; }
+
+.dropdown-wrapper { position: relative; }
+
+/* ── VIDEO TYPES ── */
+.vtype-section {
+  max-width: 1100px; margin: 0 auto;
+  padding: .75rem 0;
+  display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+}
+
+.vtype-label {
+  font-size: .65rem; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600; white-space: nowrap; min-width: 3.5rem;
+}
+
+.vtype-list { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+.vtype-item {
+  display: flex; align-items: center; gap: .55rem;
+  cursor: pointer; user-select: none;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: .42rem .85rem;
+  transition: all .18s;
+}
+.vtype-item:hover { border-color: rgba(59,130,246,.35); }
+.vtype-item.checked { border-color: var(--accent); background: rgba(59,130,246,.08); }
+
+.vtype-check {
+  width: 17px; height: 17px; border-radius: 4px; flex-shrink: 0;
+  border: 2px solid var(--border); background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .18s;
+}
+.vtype-item.checked .vtype-check { background: var(--accent); border-color: var(--accent); }
+.vtype-check svg { width: 10px; height: 10px; display: none; }
+.vtype-item.checked .vtype-check svg { display: block; }
+
+.vtype-text { font-size: .82rem; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.vtype-item.checked .vtype-text { color: var(--text); }
+.vtype-count { font-size: .75rem; color: var(--muted); }
+
+/* ── MAIN ── */
+main { max-width: 1100px; margin: 0 auto; padding: 1.5rem 2rem 4rem; }
+.results-meta {
+  font-size: .8rem; color: var(--muted); margin-bottom: 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem;
+}
+.results-meta strong { color: var(--text); }
+.results-meta a { color: var(--accent); text-decoration: none; }
+.results-meta a:hover { text-decoration: underline; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.15rem; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  overflow: hidden; display: flex; flex-direction: column;
+  transition: transform .2s, border-color .2s, box-shadow .2s;
+}
+.card:hover { transform: translateY(-3px); border-color: rgba(59,130,246,.4); box-shadow: 0 8px 32px rgba(0,0,0,.45); }
+
+.card-thumb {
+  aspect-ratio: 16/9; position: relative; overflow: hidden;
+  background: linear-gradient(135deg, #0c1828 0%, #162240 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.card-thumb::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 70% 55% at 50% 50%, rgba(59,130,246,.06) 0%, transparent 70%),
+    repeating-linear-gradient(90deg, transparent, transparent 49%, rgba(255,255,255,.025) 49%, rgba(255,255,255,.025) 51%);
+}
+.flags { display: flex; align-items: center; position: relative; z-index: 1; filter: drop-shadow(0 2px 14px rgba(0,0,0,.7)); }
+.flag { width: 74px; height: 50px; border-radius: 5px; overflow: hidden; border: 2px solid rgba(255,255,255,.2); flex-shrink: 0; display: flex; align-items: stretch; }
+.flag svg { width: 100%; height: 100%; display: block; }
+.vs-badge { background: rgba(0,0,0,.75); border: 1px solid rgba(255,255,255,.18); color: #fff; font-family: 'Bebas Neue', sans-serif; font-size: .95rem; letter-spacing: .08em; padding: .2rem .55rem; border-radius: 4px; margin: 0 8px; flex-shrink: 0; }
+.year-badge { position: absolute; top: .7rem; right: .7rem; z-index: 2; background: var(--accent2); color: #000; font-family: 'Bebas Neue', sans-serif; font-size: .85rem; letter-spacing: .05em; padding: .12rem .5rem; border-radius: 4px; }
+.stage-badge { position: absolute; top: .7rem; left: .7rem; z-index: 2; background: rgba(59,130,246,.2); border: 1px solid rgba(59,130,246,.4); color: #93c5fd; font-size: .65rem; letter-spacing: .08em; text-transform: uppercase; padding: .12rem .45rem; border-radius: 4px; font-weight: 500; }
+
+.card-body { padding: 1rem 1.1rem .8rem; flex: 1; display: flex; flex-direction: column; gap: .45rem; }
+.match-title { font-size: 1rem; font-weight: 600; color: #fff; line-height: 1.3; }
+.match-meta { font-size: .78rem; color: var(--muted); }
+.note { font-size: .78rem; color: var(--muted); font-style: italic; line-height: 1.4; }
+.score-badge { display: inline-block; background: var(--surface2); border: 1px solid var(--border); font-family: 'Bebas Neue', sans-serif; font-size: .95rem; letter-spacing: .06em; padding: .1rem .55rem; border-radius: 4px; color: var(--accent2); margin-top: auto; align-self: flex-start; }
+
+.card-footer { padding: 0 1.1rem 1rem; }
+.watch-link { display: flex; align-items: center; justify-content: center; gap: .5rem; background: var(--accent); color: #fff; text-decoration: none; padding: .62rem 1rem; border-radius: 7px; font-size: .875rem; font-weight: 500; transition: background .2s; width: 100%; }
+.watch-link:hover { background: #2563eb; }
+.watch-link svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+.state-box { grid-column: 1/-1; text-align: center; padding: 4rem 2rem; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.state-icon { font-size: 2.8rem; opacity: .5; }
+.state-box h3 { font-size: 1.1rem; font-weight: 500; color: var(--text); }
+.state-box p { font-size: .85rem; max-width: 360px; line-height: 1.6; }
+.spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+footer { text-align: center; padding: 1.5rem; font-size: .75rem; color: var(--muted); border-top: 1px solid var(--border); }
+footer a { color: var(--accent); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+@media (max-width: 680px) {
+  header { padding: .85rem 1rem; }
+  .filters-wrap { padding: 0 1rem; }
+  main { padding: 1.2rem 1rem 3rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="header-logo">⚽</span>
+  <div class="header-title">World Cup <span>Replays</span></div>
+  <div class="header-count" id="hdr-count"></div>
+</header>
+
+<div class="filters-wrap">
+  <div class="filter-section">
+    <span class="filter-label">Year</span>
+    <div class="pill-track" id="year-pills"></div>
+  </div>
+  <div class="filter-section">
+    <span class="filter-label">Team</span>
+    <div class="pill-track" id="team-pills"></div>
+    <div class="team-row-actions">
+      <div class="dropdown-wrapper" id="team-dropdown-wrap">
+        <button class="btn-team-dropdown" id="btn-team-dd">
+          All Teams
+          <svg viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4"/></svg>
+        </button>
+        <div class="team-dropdown-panel" id="team-dropdown-panel"></div>
+      </div>
+      <button class="btn-reset-pill" id="btn-reset">Reset</button>
+    </div>
+  </div>
+  <div class="filter-section" style="border-bottom:none; padding-top:.6rem; padding-bottom:.7rem;">
+    <span class="vtype-label">Type</span>
+    <div class="vtype-list" id="vtype-list"></div>
+  </div>
+</div>
+
+<main>
+  <div class="results-meta" id="meta"></div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer>
+  All links open directly on <a href="https://www.plus.fifa.com" target="_blank" rel="noopener">FIFA+</a>. A free FIFA+ account may be required.
+</footer>
+
+<script>
+const FLAGS = {
+  "Algeria":      `<svg viewBox="0 0 3 2"><rect width="1.5" height="2" fill="#006233"/><rect x="1.5" width="1.5" height="2" fill="#fff"/><circle cx="1.55" cy="1" r=".38" fill="#D21034"/><circle cx="1.72" cy="1" r=".38" fill="#fff"/><polygon points="1.62,0.72 1.69,0.93 1.91,0.93 1.74,1.06 1.8,1.27 1.62,1.14 1.44,1.27 1.5,1.06 1.33,0.93 1.55,0.93" fill="#D21034"/></svg>`,
+  "Argentina":    `<svg viewBox="0 0 3 2"><rect width="3" height=".667" fill="#74ACDF"/><rect y=".667" width="3" height=".667" fill="#fff"/><rect y="1.333" width="3" height=".667" fill="#74ACDF"/><circle cx="1.5" cy="1" r=".23" fill="#F6B40E"/></svg>`,
+  "Belgium":      `<svg viewBox="0 0 3 2"><rect width="1" height="2" fill="#000"/><rect x="1" width="1" height="2" fill="#F6D800"/><rect x="2" width="1" height="2" fill="#EF3340"/></svg>`,
+  "Brazil":       `<svg viewBox="0 0 3 2"><rect width="3" height="2" fill="#009C3B"/><polygon points="1.5,0.22 2.82,1 1.5,1.78 0.18,1" fill="#FEDD00"/><circle cx="1.5" cy="1" r=".34" fill="#002776"/></svg>`,
+  "Bulgaria":     `<svg viewBox="0 0 3 2"><rect width="3" height=".667" fill="#fff"/><rect y=".667" width="3" height=".667" fill="#00966E"/><rect y="1.333" width="3" height=".667" fill="#D62612"/></svg>`,
+  "Cameroon":     `<svg viewBox="0 0 3 2"><rect width="1" height="2" fill="#007A5E"/><rect x="1" width="1" height="2" fill="#CE1126"/><rect x="2" width="1" height="2" fill="#FCD116"/><polygon points="1.5,0.62 1.6,0.92 1.92,0.92 1.66,1.1 1.76,1.4 1.5,1.22 1.24,1.4 1.34,1.1 1.08,0.92 1.4,0.92" fill="#FCD116"/></svg>`,
+  "Colombia":     `<svg viewBox="0 0 3 2"><rect width="3" height=".8" fill="#FCD116"/><rect y=".8" width="3" height=".6" fill="#003087"/><rect y="1.4" width="3" height=".6" fill="#CE1126"/></svg>`,
+  "Croatia":      `<svg viewBox="0 0 3 2"><rect width="3" height=".667" fill="#FF0000"/><rect y=".667" width="3" height=".667" fill="#fff"/><rect y="1.333" width="3" height=".667" fill="#0032A0"/><rect x="1.2" y=".5" width=".6" height=".9" fill="#FF0000" opacity=".4"/></svg>`,
+  "England":      `<svg viewBox="0 0 3 2"><rect width="3" height="2" fill="#fff"/><rect x="1.3" width=".4" height="2" fill="#CE1126"/><rect y=".8" width="3" height=".4" fill="#CE1126"/></svg>`,
+  "France":       `<svg viewBox="0 0 3 2"><rect width="1" height="2" fill="#002395"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#ED2939"/></svg>`,
+  "Germany":      `<svg viewBox="0 0 3 2"><rect width="3" height=".667" fill="#000"/><rect y=".667" width="3" height=".667" fill="#DD0000"/><rect y="1.333" width="3" height=".667" fill="#FFCE00"/></svg>`,
+  "West Germany": `<svg viewBox="0 0 3 2"><rect width="3" height=".667" fill="#000"/><rect y=".667" width="3" height=".667" fill="#DD0000"/><rect y="1.333" width="3" height=".667" fill="#FFCE00"/></svg>`,
+  "Ghana":        `<svg viewBox="0 0 3 2"><rect width="3" height=".667" fill="#006B3F"/><rect y=".667" width="3" height=".667" fill="#FCD116"/><rect y="1.333" width="3" height=".667" fill="#EF3340"/><polygon points="1.5,0.72 1.6,1.02 1.93,1.02 1.67,1.19 1.77,1.49 1.5,1.32 1.23,1.49 1.33,1.19 1.07,1.02 1.4,1.02" fill="#000"/></svg>`,
+  "Italy":        `<svg viewBox="0 0 3 2"><rect width="1" height="2" fill="#009246"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#CE2B37"/></svg>`,
+  "Japan":        `<svg viewBox="0 0 3 2"><rect width="3" height="2" fill="#fff"/><circle cx="1.5" cy="1" r=".55" fill="#BC002D"/></svg>`,
+  "Morocco":      `<svg viewBox="0 0 3 2"><rect width="3" height="2" fill="#C1272D"/><polygon points="1.5,0.62 1.6,0.92 1.92,0.92 1.67,1.1 1.77,1.4 1.5,1.22 1.23,1.4 1.33,1.1 1.08,0.92 1.4,0.92" fill="none" stroke="#006233" stroke-width=".07"/></svg>`,
+  "Netherlands":  `<svg viewBox="0 0 3 2"><rect width="3" height=".667" fill="#AE1C28"/><rect y=".667" width="3" height=".667" fill="#fff"/><rect y="1.333" width="3" height=".667" fill="#21468B"/></svg>`,
+  "North Korea":  `<svg viewBox="0 0 3 2"><rect width="3" height=".3" fill="#024FA2"/><rect y=".3" width="3" height="1.4" fill="#FF0000"/><rect y="1.7" width="3" height=".3" fill="#024FA2"/><circle cx=".9" cy="1" r=".38" fill="#fff"/></svg>`,
+  "Poland":       `<svg viewBox="0 0 3 2"><rect width="3" height="1" fill="#fff"/><rect y="1" width="3" height="1" fill="#DC143C"/></svg>`,
+  "Portugal":     `<svg viewBox="0 0 3 2"><rect width="3" height="2" fill="#FF0000"/><rect width="1.1" height="2" fill="#006600"/><circle cx="1.1" cy="1" r=".36" fill="#FFD700" stroke="#006600" stroke-width=".05"/></svg>`,
+  "Romania":      `<svg viewBox="0 0 3 2"><rect width="1" height="2" fill="#002B7F"/><rect x="1" width="1" height="2" fill="#FCD116"/><rect x="2" width="1" height="2" fill="#CE1126"/></svg>`,
+  "Russia":       `<svg viewBox="0 0 3 2"><rect width="3" height=".667" fill="#fff"/><rect y=".667" width="3" height=".667" fill="#0032A0"/><rect y="1.333" width="3" height=".667" fill="#DA121A"/></svg>`,
+  "Senegal":      `<svg viewBox="0 0 3 2"><rect width="1" height="2" fill="#00853F"/><rect x="1" width="1" height="2" fill="#FDEF42"/><rect x="2" width="1" height="2" fill="#E31B23"/><polygon points="1.5,0.62 1.6,0.92 1.92,0.92 1.67,1.1 1.77,1.4 1.5,1.22 1.23,1.4 1.33,1.1 1.08,0.92 1.4,0.92" fill="#00853F"/></svg>`,
+  "South Korea":  `<svg viewBox="0 0 3 2"><rect width="3" height="2" fill="#fff"/><circle cx="1.5" cy="1" r=".42" fill="#CD2E3A"/><path d="M1.5,0.58 A0.42,0.42 0 0,1 1.5,1.42" fill="#003478"/></svg>`,
+  "Spain":        `<svg viewBox="0 0 3 2"><rect width="3" height="2" fill="#AA151B"/><rect y=".5" width="3" height="1" fill="#F1BF00"/></svg>`,
+  "Sweden":       `<svg viewBox="0 0 3 2"><rect width="3" height="2" fill="#006AA7"/><rect x=".9" width=".3" height="2" fill="#FECC02"/><rect y=".85" width="3" height=".3" fill="#FECC02"/></svg>`,
+  "Uruguay":      `<svg viewBox="0 0 3 2"><rect width="3" height="2" fill="#fff"/><rect y=".222" width="3" height=".222" fill="#75AADB"/><rect y=".667" width="3" height=".222" fill="#75AADB"/><rect y="1.111" width="3" height=".222" fill="#75AADB"/><rect y="1.556" width="3" height=".222" fill="#75AADB"/><circle cx=".7" cy="1" r=".33" fill="#FCD116"/></svg>`,
+  "USSR":         `<svg viewBox="0 0 3 2"><rect width="3" height="2" fill="#CC0000"/><text x=".3" y="1.35" font-size=".9" fill="#FFD700">☆</text><text x="1.1" y="1.05" font-size=".5" fill="#FFD700">✦</text></svg>`,
+};
+
+function flag(team) {
+  const svg = FLAGS[team] || `<svg viewBox="0 0 3 2"><rect width="3" height="2" fill="#1e2d45"/><text x="1.5" y="1.25" text-anchor="middle" font-size=".55" fill="#6b7fa3">${team.slice(0,3).toUpperCase()}</text></svg>`;
+  return `<div class="flag">${svg}</div>`;
+}
+
+const MATCHES = [
+  { t1:"England",      t2:"West Germany",  y:1966, stage:"Final",         score:"4–2",  note:"Geoff Hurst hat-trick — the Wembley classic",
+    url:"https://www.plus.fifa.com/en/content/england-v-germany-fr-final-1966-fifa-world-cup-england-full-match-replay/0a55a10b-f427-4c55-a689-ce65c07159f5" },
+  { t1:"Portugal",     t2:"North Korea",   y:1966, stage:"Quarter-final", score:"5–3",  note:"Eusébio's four-goal comeback from 0–3",
+    url:"https://www.plus.fifa.com/en/showcase/1966-fifa-world-cup-full-match-replays/a0d92c62-f184-4f29-aab1-b69dba02a9e8" },
+  { t1:"Brazil",       t2:"Italy",         y:1970, stage:"Final",         score:"4–1",  note:"The Beautiful Game's finest hour — Pelé's greatest",
+    url:"https://www.plus.fifa.com/en/content/brazil-v-italy-final-1970-fifa-world-cup-mexico-full-match-replay/1d14ae9b-96f0-492f-9171-fa66a26a5f62" },
+  { t1:"West Germany", t2:"England",       y:1970, stage:"Quarter-final", score:"3–2",  note:"Legendary West German comeback (AET)",
+    url:"https://www.plus.fifa.com/en/showcase/1970-fifa-world-cup/3413b02b-c7f9-48fd-8302-9ca7ad0cb7ce" },
+  { t1:"Brazil",       t2:"Uruguay",       y:1970, stage:"Semi-final",    score:"3–1",  note:"Pelé's famous no-look dummy assist",
+    url:"https://www.plus.fifa.com/en/showcase/1970-fifa-world-cup/3413b02b-c7f9-48fd-8302-9ca7ad0cb7ce" },
+  { t1:"West Germany", t2:"Netherlands",   y:1974, stage:"Final",         score:"2–1",  note:"Total Football meets German efficiency",
+    url:"https://www.plus.fifa.com/en/content/netherlands-v-germany-final-1974-fifa-world-cup-germany-full-match-replay/ca23f2aa-149d-489b-8a9b-d153407ba31e" },
+  { t1:"Argentina",    t2:"Netherlands",   y:1978, stage:"Final",         score:"3–1",  note:"Argentina's first World Cup — Kempes the hero (AET)",
+    url:"https://www.plus.fifa.com/en/content/argentina-v-netherlands-final-1978-fifa-world-cup-argentina-full-match-replay/d9af2778-c135-4492-8708-d803f9bd5baf" },
+  { t1:"Italy",        t2:"Brazil",        y:1982, stage:"Group stage",   score:"3–2",  note:"Paolo Rossi hat-trick stuns the brilliant Brazilians",
+    url:"https://www.plus.fifa.com/en/content/italy-v-brazil-second-round-1982-fifa-world-cup-spain-full-match-replay/89e294a3-0a4c-484b-8a45-778688710c34" },
+  { t1:"Argentina",    t2:"Belgium",       y:1982, stage:"Group stage",   score:"1–0",  note:"Maradona's first WC — Argentina edge through",
+    url:"https://www.plus.fifa.com/en/content/argentina-v-belgium-group-matches-1982-fifa-world-cup-spain-full-match-replay/e7f226cd-6e00-4339-8c97-34bb6c900ea5" },
+  { t1:"Argentina",    t2:"England",       y:1986, stage:"Quarter-final", score:"2–1",  note:"Hand of God + Goal of the Century — Maradona's masterpiece",
+    url:"https://www.plus.fifa.com/en/content/argentina-v-england-quarter-finals-1986-fifa-world-cup-mexico-full-match-replay/3e760034-8966-404b-9c4c-214a2dec6bf1" },
+  { t1:"USSR",         t2:"Belgium",       y:1986, stage:"Round of 16",   score:"3–4",  note:"One of the greatest matches in WC history",
+    url:"https://www.plus.fifa.com/en/content/soviet-union-v-belgium-round-of-16-1986-fifa-world-cup-mexico-full-match-replay/32181e72-88af-4010-b0ce-e1d66245baac" },
+  { t1:"Spain",        t2:"Belgium",       y:1986, stage:"Quarter-final", score:"1–1",  note:"Belgium pull off another shock result on penalties",
+    url:"https://www.plus.fifa.com/en/content/spain-v-belgium-quarter-finals-fifa-world-cup-1986tm-full-match-replay-1986/19173a48-25f9-47ce-af38-52abb004e8d7" },
+  { t1:"West Germany", t2:"Argentina",     y:1990, stage:"Final",         score:"1–0",  note:"Brehme's late penalty seals it for Germany",
+    url:"https://www.plus.fifa.com/en/content/germany-fr-v-argentina-final-1990-fifa-world-cup-italy-full-match-replay/ed518836-2c48-4a51-90ec-cce02743ecfe" },
+  { t1:"Brazil",       t2:"Italy",         y:1994, stage:"Final",         score:"0–0",  note:"Brazil win on penalties — Baggio's famous miss",
+    url:"https://www.plus.fifa.com/en/content/brazil-v-italy-i-final-i-1994-fifa-world-cup-usa-i-full-match-replay/f767ff3f-1ba0-4741-a93c-b5acec500421" },
+  { t1:"Sweden",       t2:"Romania",       y:1994, stage:"Round of 16",   score:"2–2",  note:"Brolin, Dahlin & a thrilling game",
+    url:"https://www.plus.fifa.com/en/showcase/full-match-replays/cd5f0c31-fc6f-4502-aee3-633edf65ef60" },
+  { t1:"France",       t2:"Brazil",        y:1998, stage:"Final",         score:"3–0",  note:"Zidane's double-header — hosts triumph in Paris",
+    url:"https://www.plus.fifa.com/en/content/brazil-v-france-final-1998-fifa-world-cup-france-full-match-replay/2262d3ba-4bd2-4757-985c-cd163f148c25" },
+  { t1:"Argentina",    t2:"England",       y:1998, stage:"Round of 16",   score:"2–2",  note:"Beckham red card, Batistuta & shootout drama",
+    url:"https://www.plus.fifa.com/en/showcase/full-match-replays/cd5f0c31-fc6f-4502-aee3-633edf65ef60" },
+  { t1:"Croatia",      t2:"Germany",       y:1998, stage:"Quarter-final", score:"3–0",  note:"Šuker & Croatia shock the world — Suker top scorer",
+    url:"https://www.plus.fifa.com/en/showcase/full-match-replays/cd5f0c31-fc6f-4502-aee3-633edf65ef60" },
+  { t1:"Brazil",       t2:"Germany",       y:2002, stage:"Final",         score:"2–0",  note:"Ronaldo's double — Kahn's costly errors",
+    url:"https://www.plus.fifa.com/en/content/germany-v-brazil-final-2002-fifa-world-cup-korea-japan-full-match-replay/203e79a9-acf8-494c-a175-b0d2e00fd809" },
+  { t1:"Senegal",      t2:"France",        y:2002, stage:"Group stage",   score:"1–0",  note:"Defending champions fall on opening day",
+    url:"https://www.plus.fifa.com/en/showcase/full-match-replays/cd5f0c31-fc6f-4502-aee3-633edf65ef60" },
+  { t1:"South Korea",  t2:"Germany",       y:2002, stage:"Semi-final",    score:"0–1",  note:"South Korea's stunning historic run",
+    url:"https://www.plus.fifa.com/en/showcase/full-match-replays/cd5f0c31-fc6f-4502-aee3-633edf65ef60" },
+  { t1:"Italy",        t2:"France",        y:2006, stage:"Final",         score:"1–1",  note:"Zidane headbutt — Italy win on penalties",
+    url:"https://www.plus.fifa.com/en/content/italy-v-france-final-2006-fifa-world-cup-germany-full-match-replay/fee2f7e8-92fa-42c5-805c-a2c949015eae" },
+  { t1:"Germany",      t2:"Argentina",     y:2006, stage:"Quarter-final", score:"1–1",  note:"Penalty drama in Berlin",
+    url:"https://www.plus.fifa.com/en/showcase/content-by-video-type-2006-fifa-world-cup/16467f49-5916-47b1-9f41-ff9224bb372a" },
+  { t1:"Spain",        t2:"Netherlands",   y:2010, stage:"Final",         score:"1–0",  note:"Iniesta's stunning extra-time winner — Spain's first",
+    url:"https://www.plus.fifa.com/en/content/netherlands-v-spain-final-2010-fifa-world-cup-south-africa-full-match-replay/b04272b7-7650-447f-80da-7261943b23db" },
+  { t1:"Uruguay",      t2:"Ghana",         y:2010, stage:"Quarter-final", score:"1–1",  note:"Suárez handball — Asamoah Gyan's heartbreak",
+    url:"https://www.plus.fifa.com/en/showcase/full-match-replays/cd5f0c31-fc6f-4502-aee3-633edf65ef60" },
+  { t1:"Germany",      t2:"England",       y:2010, stage:"Round of 16",   score:"4–1",  note:"The Lampard phantom goal controversy",
+    url:"https://www.plus.fifa.com/en/showcase/full-match-replays/cd5f0c31-fc6f-4502-aee3-633edf65ef60" },
+  { t1:"Brazil",       t2:"Germany",       y:2014, stage:"Semi-final",    score:"1–7",  note:"The Mineirazo — the most historic thrashing in WC history",
+    url:"https://www.plus.fifa.com/en/content/brazil-v-germany-semi-finals-2014-fifa-world-cup-brazil-full-match-replay/cc73fff8-76dc-4c31-9cc3-a5c6d49cbb93" },
+  { t1:"Germany",      t2:"Argentina",     y:2014, stage:"Final",         score:"1–0",  note:"Götze's stunning extra-time winner",
+    url:"https://www.plus.fifa.com/en/content/germany-v-argentina-final-2014-fifa-world-cup-brazil-full-match-replay/4561410e-5f3f-458f-84bd-4fc1b8c84060" },
+  { t1:"France",       t2:"Croatia",       y:2018, stage:"Final",         score:"4–2",  note:"Teenage Mbappé announces himself to the world",
+    url:"https://www.plus.fifa.com/en/content/france-v-croatia-final-2018-fifa-world-cup-russia-full-match-replay/5c2fe94a-26aa-455f-8f7c-fc376b00499b" },
+  { t1:"Belgium",      t2:"Japan",         y:2018, stage:"Round of 16",   score:"3–2",  note:"Greatest comeback of the tournament — Chadli 94'",
+    url:"https://www.plus.fifa.com/en/content/belgium-v-japan-round-of-16-2018-fifa-world-cup-russia-full-match-replay/91f25d3d-d996-4a3f-a880-5b592de4c13e" },
+  { t1:"England",      t2:"Colombia",      y:2018, stage:"Round of 16",   score:"1–1",  note:"England's first ever WC penalty shootout win",
+    url:"https://www.plus.fifa.com/en/showcase/full-match-replays/f59100fd-b1ce-4714-9ab0-fab37929f727" },
+  { t1:"Russia",       t2:"Spain",         y:2018, stage:"Round of 16",   score:"1–1",  note:"Hosts stun favourites on penalties",
+    url:"https://www.plus.fifa.com/en/showcase/full-match-replays/f59100fd-b1ce-4714-9ab0-fab37929f727" },
+  { t1:"Argentina",    t2:"France",        y:2022, stage:"Final",         score:"3–3",  note:"The greatest WC final ever — Mbappé hat-trick",
+    url:"https://www.plus.fifa.com/en/content/argentina-v-france-final-fifa-world-cup-qatar-2022-full-match-replay/7047fe21-4af1-476c-9fb8-e4655c5668e2" },
+  { t1:"Morocco",      t2:"Spain",         y:2022, stage:"Round of 16",   score:"0–0",  note:"Morocco's historic run begins on penalties",
+    url:"https://www.plus.fifa.com/en/showcase/fifa-world-cup-2022/845fdca5-6741-4ab7-a1aa-af01871843cd" },
+  { t1:"Japan",        t2:"Germany",       y:2022, stage:"Group stage",   score:"2–1",  note:"Blue Samurai produce one of the biggest upsets ever",
+    url:"https://www.plus.fifa.com/en/showcase/fifa-world-cup-2022/845fdca5-6741-4ab7-a1aa-af01871843cd" },
+  { t1:"Brazil",       t2:"Croatia",       y:2022, stage:"Quarter-final", score:"1–1",  note:"Neymar scores, then penalties heartbreak",
+    url:"https://www.plus.fifa.com/en/showcase/fifa-world-cup-2022/845fdca5-6741-4ab7-a1aa-af01871843cd" },
+  { t1:"Argentina",    t2:"Netherlands",   y:2022, stage:"Quarter-final", score:"2–2",  note:"Feisty drama — Messi inspires, Argentina win on pens",
+    url:"https://www.plus.fifa.com/en/showcase/fifa-world-cup-2022/845fdca5-6741-4ab7-a1aa-af01871843cd" },
+  { t1:"Portugal",     t2:"Morocco",       y:2022, stage:"Quarter-final", score:"0–1",  note:"Morocco make history — Africa's first WC semi-final",
+    url:"https://www.plus.fifa.com/en/showcase/fifa-world-cup-2022/845fdca5-6741-4ab7-a1aa-af01871843cd" },
+];
+
+const VTYPES_BY_INDEX = ['full','highlights','full','extended','highlights','full','full','full','extended','full','full','highlights','full','full','extended','full','highlights','extended','full','highlights','extended','full','highlights','full','extended','highlights','full','full','full','full','extended','highlights','full','extended','highlights','full','extended','highlights'];
+MATCHES.forEach((m, i) => { m.vtype = VTYPES_BY_INDEX[i] || 'full'; });
+
+
+const VIDEO_TYPES = [
+  { id: 'full',      label: 'Full Match Replays' },
+  { id: 'extended',  label: 'Extended Highlights' },
+  { id: 'highlights',label: 'Highlights' },
+];
+
+let activeYear   = null;
+let activeTeam   = null;
+let activeVTypes = new Set(['full', 'extended', 'highlights']);
+
+const yearTrack    = document.getElementById('year-pills');
+const teamTrack    = document.getElementById('team-pills');
+const vtypeList    = document.getElementById('vtype-list');
+const ddBtn        = document.getElementById('btn-team-dd');
+const ddPanel      = document.getElementById('team-dropdown-panel');
+const grid         = document.getElementById('grid');
+const meta         = document.getElementById('meta');
+const hdrCount     = document.getElementById('hdr-count');
+const btnReset     = document.getElementById('btn-reset');
+
+const allYears = [...new Set(MATCHES.map(m => m.y))].sort((a,b) => b-a);
+const allTeams = [...new Set(MATCHES.flatMap(m => [m.t1, m.t2]))].sort();
+
+allYears.forEach(y => {
+  const p = document.createElement('button');
+  p.className = 'pill'; p.textContent = y; p.dataset.val = y;
+  p.addEventListener('click', () => { activeYear = activeYear === y ? null : y; refreshPills(); render(); });
+  yearTrack.appendChild(p);
+});
+
+allTeams.forEach(t => {
+  const p = document.createElement('button');
+  p.className = 'pill'; p.textContent = t; p.dataset.val = t;
+  p.addEventListener('click', () => { activeTeam = activeTeam === t ? null : t; refreshPills(); updateDdBtn(); render(); });
+  teamTrack.appendChild(p);
+});
+
+const ddAllItem = document.createElement('button');
+ddAllItem.className = 'dropdown-item active'; ddAllItem.textContent = 'All Teams';
+ddAllItem.addEventListener('click', () => { activeTeam = null; refreshPills(); updateDdBtn(); closeDropdown(); render(); });
+ddPanel.appendChild(ddAllItem);
+
+allTeams.forEach(t => {
+  const item = document.createElement('button');
+  item.className = 'dropdown-item'; item.textContent = t; item.dataset.val = t;
+  item.addEventListener('click', () => { activeTeam = t; refreshPills(); updateDdBtn(); closeDropdown(); render(); });
+  ddPanel.appendChild(item);
+});
+
+function updateDdBtn() {
+  ddBtn.querySelector('span') ? ddBtn.querySelector('span').textContent = activeTeam || 'All Teams'
+    : ddBtn.childNodes[0].textContent = (activeTeam || 'All Teams') + ' ';
+  ddPanel.querySelectorAll('.dropdown-item').forEach(el => {
+    el.classList.toggle('active', (el.dataset.val || '') === (activeTeam || ''));
+  });
+}
+
+function closeDropdown() { ddBtn.classList.remove('open'); ddPanel.classList.remove('open'); }
+
+ddBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  const open = ddPanel.classList.toggle('open');
+  ddBtn.classList.toggle('open', open);
+});
+document.addEventListener('click', e => { if (!ddPanel.contains(e.target) && e.target !== ddBtn) closeDropdown(); });
+
+VIDEO_TYPES.forEach(vt => {
+  const count = MATCHES.filter(m => m.vtype === vt.id).length;
+  const item = document.createElement('div');
+  item.className = 'vtype-item checked'; item.dataset.id = vt.id;
+  item.innerHTML = `<div class="vtype-check"><svg viewBox="0 0 10 8" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,4 3.5,6.5 9,1"/></svg></div><span class="vtype-text">${vt.label}</span><span class="vtype-count">(${count})</span>`;
+  item.addEventListener('click', () => {
+    if (activeVTypes.has(vt.id)) {
+      if (activeVTypes.size === 1) return;
+      activeVTypes.delete(vt.id);
+      item.classList.remove('checked');
+    } else {
+      activeVTypes.add(vt.id);
+      item.classList.add('checked');
+    }
+    render();
+  });
+  vtypeList.appendChild(item);
+});
+
+function refreshPills() {
+  yearTrack.querySelectorAll('.pill').forEach(p => p.classList.toggle('active', String(activeYear) === p.dataset.val));
+  teamTrack.querySelectorAll('.pill').forEach(p => {
+    p.classList.toggle('active', activeTeam === p.dataset.val);
+    p.classList.toggle('team', activeTeam === p.dataset.val);
+  });
+}
+
+function filterMatches() {
+  return MATCHES.filter(m => {
+    if (activeYear && m.y !== activeYear) return false;
+    if (activeTeam && ![m.t1, m.t2].includes(activeTeam)) return false;
+    if (!activeVTypes.has(m.vtype)) return false;
+    return true;
+  });
+}
+
+const extIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+
+const VTYPE_LABEL = { full: 'Full Match', extended: 'Extended', highlights: 'Highlights' };
+
+function renderCard(m) {
+  return `
+    <article class="card">
+      <div class="card-thumb">
+        <span class="stage-badge">${m.stage}</span>
+        <span class="year-badge">${m.y}</span>
+        <div class="flags">
+          ${flag(m.t1)}<span class="vs-badge">VS</span>${flag(m.t2)}
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="match-title">${m.t1} vs ${m.t2}</div>
+        <div class="match-meta">🏆 ${m.y} FIFA World Cup · <span style="color:var(--accent);opacity:.8">${VTYPE_LABEL[m.vtype]}</span></div>
+        <div class="note">${m.note}</div>
+        <div class="score-badge">FT: ${m.score}</div>
+      </div>
+      <div class="card-footer">
+        <a class="watch-link" href="${m.url}" target="_blank" rel="noopener noreferrer">
+          ${extIcon} Watch on FIFA+
+        </a>
+      </div>
+    </article>`;
+}
+
+function render() {
+  grid.innerHTML = `<div class="state-box"><div class="spinner"></div></div>`;
+  meta.innerHTML = '';
+  setTimeout(() => {
+    const results = filterMatches();
+    hdrCount.textContent = `${results.length} match${results.length !== 1 ? 'es' : ''}`;
+    let desc = '';
+    if (activeTeam) desc += `<strong>${activeTeam}</strong>`;
+    if (activeYear) desc += (desc ? ' · ' : '') + `<strong>${activeYear}</strong>`;
+    meta.innerHTML = `<span>${results.length} match${results.length !== 1 ? 'es' : ''} found${desc ? ' — ' + desc : ''}</span>
+      <span>Links open on <a href="https://www.plus.fifa.com" target="_blank" rel="noopener">FIFA+</a></span>`;
+    if (!results.length) {
+      grid.innerHTML = `<div class="state-box"><div class="state-icon">🔍</div><h3>No matches found</h3>
+        <p>Try adjusting your filters or <a href="https://www.plus.fifa.com/en/showcase/full-match-replays/cd5f0c31-fc6f-4502-aee3-633edf65ef60" target="_blank" rel="noopener" style="color:var(--accent)">browse the full FIFA+ archive</a>.</p></div>`;
+      return;
+    }
+    grid.innerHTML = results.map(renderCard).join('');
+  }, 180);
+}
+
+btnReset.addEventListener('click', () => {
+  activeYear = null; activeTeam = null;
+  activeVTypes = new Set(['full', 'extended', 'highlights']);
+  vtypeList.querySelectorAll('.vtype-item').forEach(el => el.classList.add('checked'));
+  refreshPills(); updateDdBtn(); render();
+});
+
+render();
+</script>
+</body>
+</html>
